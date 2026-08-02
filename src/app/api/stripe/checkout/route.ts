@@ -13,8 +13,15 @@ export async function POST(req: Request) {
 
     const { plan } = await req.json();
     const planConfig = PLANS[plan as keyof typeof PLANS];
-    if (!planConfig || !planConfig.stripePriceId) {
+    
+    if (!planConfig) {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
+    }
+
+    // Sprawdź czy plan ma stripePriceId (free go nie ma)
+    const stripePriceId = (planConfig as any).stripePriceId;
+    if (!stripePriceId) {
+      return NextResponse.json({ error: "Invalid plan or missing price ID" }, { status: 400 });
     }
 
     let subscription = await prisma.subscription.findUnique({
@@ -42,7 +49,7 @@ export async function POST(req: Request) {
 
     const checkoutSession = await stripe.checkout.sessions.create({
       customer: customerId,
-      line_items: [{ price: planConfig.stripePriceId, quantity: 1 }],
+      line_items: [{ price: stripePriceId, quantity: 1 }],
       mode: "subscription",
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?canceled=true`,
