@@ -1,9 +1,15 @@
-// @ts-nocheck
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { stripe, PLANS } from "@/lib/stripe";
+import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
+
+const PLAN_PRICES: Record<string, string | undefined> = {
+  free: undefined,
+  starter: process.env.STRIPE_PRICE_ID_BASIC,
+  pro: process.env.STRIPE_PRICE_ID_PRO,
+  enterprise: process.env.STRIPE_PRICE_ID_ENTERPRISE,
+};
 
 export async function POST(req: Request) {
   try {
@@ -13,13 +19,9 @@ export async function POST(req: Request) {
     }
 
     const { plan } = await req.json();
-    const planConfig = PLANS[plan];
+    const stripePriceId = PLAN_PRICES[plan];
     
-    if (!planConfig) {
-      return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
-    }
-
-    if (!planConfig.stripePriceId) {
+    if (!stripePriceId) {
       return NextResponse.json({ error: "Invalid plan or missing price ID" }, { status: 400 });
     }
 
@@ -48,7 +50,7 @@ export async function POST(req: Request) {
 
     const checkoutSession = await stripe.checkout.sessions.create({
       customer: customerId,
-      line_items: [{ price: planConfig.stripePriceId, quantity: 1 }],
+      line_items: [{ price: stripePriceId, quantity: 1 }],
       mode: "subscription",
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?canceled=true`,
