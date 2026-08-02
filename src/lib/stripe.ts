@@ -9,6 +9,7 @@ export const PLANS = {
     name: "Free",
     description: "Perfect for getting started",
     price: 0,
+    stripePriceId: undefined as string | undefined,
     features: [
       "1 store analysis per month",
       "Basic metrics",
