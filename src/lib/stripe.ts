@@ -4,12 +4,12 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2024-06-20",
 });
 
-export const PLANS = {
+export const PLANS: Record<string, any> = {
   free: {
     name: "Free",
     description: "Perfect for getting started",
     price: 0,
-    stripePriceId: undefined as string | undefined,
+    stripePriceId: undefined,
     features: [
       "1 store analysis per month",
       "Basic metrics",
