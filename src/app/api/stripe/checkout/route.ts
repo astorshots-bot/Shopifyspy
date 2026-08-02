@@ -18,7 +18,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
     }
 
-    // Sprawdź czy plan ma stripePriceId (free go nie ma)
     const stripePriceId = (planConfig as any).stripePriceId;
     if (!stripePriceId) {
       return NextResponse.json({ error: "Invalid plan or missing price ID" }, { status: 400 });
