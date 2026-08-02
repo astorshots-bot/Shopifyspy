@@ -12,13 +12,13 @@ export async function POST(req: Request) {
     }
 
     const { plan } = await req.json();
-    const planConfig = PLANS[plan as keyof typeof PLANS];
+    const planConfig = PLANS[plan as keyof typeof PLANS] as any;
     
     if (!planConfig) {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
     }
 
-    const stripePriceId = (planConfig as any).stripePriceId;
+    const stripePriceId = planConfig.stripePriceId;
     if (!stripePriceId) {
       return NextResponse.json({ error: "Invalid plan or missing price ID" }, { status: 400 });
     }
