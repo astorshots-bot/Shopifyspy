@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          String    @default("user")
+  accounts      Account[]
+  sessions      Session[]
+  subscription  Subscription?
+  stores        MonitoredStore[]
+  reports       Report[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Subscription {
+  id                     String   @id @default(cuid())
+  userId                 String   @unique
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripeCustomerId       String?  @unique
+  stripeSubscriptionId   String?  @unique
+  stripePriceId          String?
+  stripeCurrentPeriodEnd DateTime?
+  status                 String   @default("inactive")
+  plan                   String   @default("free")
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+model MonitoredStore {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storeUrl    String
+  storeName   String?
+  isActive    Boolean   @default(true)
+  lastScraped DateTime?
+  products    Product[]
+  reports     Report[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userId, storeUrl])
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  storeId       String
+  store         MonitoredStore @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  shopifyId     String
+  title         String
+  handle        String
+  productType   String?
+  vendor        String?
+  price         Float
+  comparePrice  Float?
+  inventory     Int?
+  images        String[]
+  description   String?
+  tags          String[]
+  variants      Json?
+  isAvailable   Boolean  @default(true)
+  firstSeen     DateTime @default(now())
+  lastSeen      DateTime @updatedAt
+  priceHistory  PriceHistory[]
+
+  @@unique([storeId, shopifyId])
+}
+
+model PriceHistory {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  price     Float
+  comparePrice Float?
+  inventory Int?
+  isAvailable Boolean @default(true)
+  recordedAt DateTime @default(now())
+}
+
+model Report {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storeId         String
+  store           MonitoredStore @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  type            String
+  title           String
+  summary         String?
+  newProducts     Int      @default(0)
+  priceChanges    Int      @default(0)
+  stockChanges    Int      @default(0)
+  aiInsights      String?
+  aiRecommendations String?
+  data            Json?
+  isRead          Boolean  @default(false)
+  sentEmail       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+}
