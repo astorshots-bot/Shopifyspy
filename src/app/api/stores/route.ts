@@ -39,4 +39,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Store URL required" }, { status: 400 });
     }
 
-    const cleanUrl = store
+    const cleanUrl = storeUrl.replace(/\/$/, "").replace(/^https?:\/\//, "");
+    const domain = cleanUrl.split("/")[0];
+
+    const user = await prisma.user.findUnique({
+      where: { id: (session.user as any).id },
+      include: { subscription: true, _count: { select: { stores: true } } },
+    });
+
+    const plan = user?.subscription?.plan || "free";
+    const limits: Record<string, number> = { free: 1, pro: 5, agency: 20 };
+
+    if (user?._count.stores >= limits[plan]) {
+      return NextResponse.json({ error: "Store limit reached. Upgrade your plan." }, { status: 403 });
+    }
+
+    const store = await prisma.monitoredStore.create({
+      data: {
+        userId: (session.user as any).id,
+        storeUrl: domain,
+        storeName: domain.replace(".myshopify.com", ""),
+      },
+    });
+
+    return NextResponse.json({ success: true, store });
+  } catch (error) {
+    console.error("Create store error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
